@@ -1,37 +1,37 @@
-This was originally designed to accept a very low frequency pwm output (1-50Hz) and measure the SBC's frequency vs the TCXO's. That frequency data can then be fed into chrony's temperature compensation system to result in more stable time for NTP service.
+# stm32 output PPS
 
-Hardware is a custom designed SBC hat with microcontroller and TCXO
+## This project provides a high accuracy PPS suitable for a stratum 2+ NTP server.
 
-The TCXO's frequency vs temperature curve is measured and stored in flash in order to increase long term frequency accuracy.
+It can be expensive to get GPS antennas in datacenters, especially if you don't own your own datacenter building. As an alternative to a stratum 1 NTP server using GPS, a stratum 2 NTP server can benefit from a local frequency standard to increase its accuracy.
+
+This project has three pieces:
+* hardware - Raspberry Pi Hat with a stm32f031 microcontroller+TCXO (hardware/ directory)
+* firmware - Outputs a PPS based on the TCXO's frequency, controlled via i2c (top directory)
+* clients - Talks to the hat via i2c commands (clients/ directory)
+
+The TCXO's frequency vs temperature curve is measured, stored in flash, and applied to the PPS in order to increase frequency accuracy.
+![Frequency vs Temperature](https://blog.dan.drown.org/content/images/2017/02/ch2-freq-vs-temp-2-1.png)
+
+Chrony can be configured to accept the PPS as a local frequency reference, combining it with normal NTP servers to improve time accuracy: https://blog.dan.drown.org/strat-2-tcxo/
 
 The hat also contains an RTC with sub-second precision. Usually i2c RTCs will only tell you time to the nearest second, so you have to poll them to find out when the second changes. The RTC runs off the 32khz crystal, but can be measured in hardware against the TCXO with `clients/rtc compare`
 
 Timers used
-* TIM2 - main 32 bit timer, all 4 channels are setup as pwm output (10ms high, 990ms low)
-* TIM14 - 16 bit timer, measures RTC vs TCXO on channel 1
+* TIM2 - main 32 bit timer, 1 channel is setup as PWM/PPS output (HAT_CH1 or HAT_CH2)
+* TIM14 - 16 bit timer, measures RTC (32khz LSE) vs TCXO on channel 1
 
 Hat pins connected to SBC/stm32 micro:
+* SBC pin - stm32 use
 * pin3 - I2C SDA
 * pin5 - I2C SCL
 * pin11 - stm32 rst (via jumper)
-* pin12 - PPS output CH1
+* pin12 - PPS output HAT_CH1
 * pin13 - stm32 BOOT0 (via jumper)
 * pin18 - SWD dio (via jumper)
 * pin22 - SWD clk (via jumper)
-* pin33 - PPS output CH2
+* pin33 - PPS output HAT_CH2
 
-settings in raspi-config:
-
-i2c enabled
-(optional for gps) serial login shell disabled, serial interface enabled
-
-/boot/config.txt:
-dtparam=i2c\_arm=on
-dtparam=i2c\_arm\_baudrate=400000
-\# optional for gps
-dtoverlay=pps-gpio,gpiopin=13
-
-stm32 source code:
+firmware code:
 
 * Src/system_stm32f0xx.c - bootup, start clocks
 * Src/main.c - init peripherals, main loop
@@ -44,7 +44,7 @@ stm32 source code:
 * Src/uart.c - debug uart interface
 * Drivers/STM32F0xx_HAL_Driver - stm32 Hardware Abstraction Layer (HAL)
 
-SBC tool code:
+SBC client code:
 
 * clients/timestamps-i2c.c - compare SBC system time vs TCXO, request via i2c
 * clients/input-capture-i2c.c - compare SBC system frequency vs TCXO, via SBC output pwm
