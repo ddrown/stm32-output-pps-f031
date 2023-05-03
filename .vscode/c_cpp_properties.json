@@ -12,7 +12,7 @@
                 "STM32F031x6",
                 "_GNU_SOURCE"
             ],
-            "compilerPath": "/usr/lib64/ccache/arm-none-eabi-gcc",
+            "compilerPath": "/usr/bin/arm-none-eabi-gcc",
             "cStandard": "c17",
             "cppStandard": "c++14",
             "intelliSenseMode": "linux-gcc-arm",
@@ -22,7 +22,8 @@
                 "-IDrivers/STM32F0xx_HAL_Driver/Inc",
                 "-IDrivers/STM32F0xx_HAL_Driver/Inc/Legacy",
                 "-IInc"
-            ]
+            ],
+            "configurationProvider": "ms-vscode.makefile-tools"
         }
     ],
     "version": 4
